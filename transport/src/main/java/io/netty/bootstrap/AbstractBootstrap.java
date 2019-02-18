@@ -278,7 +278,13 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         return doBind(localAddress);
     }
 
+    /**
+     * 绑定端口
+     * @param localAddress
+     * @return
+     */
     private ChannelFuture doBind(final SocketAddress localAddress) {
+        //1.初始化和注册Channel
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
         if (regFuture.cause() != null) {
@@ -288,6 +294,7 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
         if (regFuture.isDone()) {
             // At this point we know that the registration was complete and successful.
             ChannelPromise promise = channel.newPromise();
+            //2.绑定端口
             doBind0(regFuture, channel, localAddress, promise);
             return promise;
         } else {
@@ -317,7 +324,14 @@ public abstract class AbstractBootstrap<B extends AbstractBootstrap<B, C>, C ext
     final ChannelFuture initAndRegister() {
         Channel channel = null;
         try {
+            //创建一个channel并初始化
             channel = channelFactory.newChannel();
+            //init逻辑，如果是服务端则调用@ServerBootStrap的init方法，如果是客户端则调用Bootstrap的init方法
+            /**
+             * init逻辑：
+             * 如果是服务端则调用{@link ServerBootstrap#init(Channel channel)}方法，
+             * 如果是客户端则调用{@link Bootstrap#init(Channel channel)}方法
+             */
             init(channel);
         } catch (Throwable t) {
             if (channel != null) {

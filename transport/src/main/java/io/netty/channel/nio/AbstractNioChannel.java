@@ -381,9 +381,10 @@ public abstract class AbstractNioChannel extends AbstractChannel {
     @Override
     protected void doRegister() throws Exception {
         boolean selected = false;
-        for (;;) {
+        for (;;) {//开始轮询？？
             try {
                 selectionKey = javaChannel().register(eventLoop().unwrappedSelector(), 0, this);
+                logger.info("11111");
                 return;
             } catch (CancelledKeyException e) {
                 if (!selected) {
@@ -391,6 +392,7 @@ public abstract class AbstractNioChannel extends AbstractChannel {
                     // cached and not removed because no Select.select(..) operation was called yet.
                     eventLoop().selectNow();
                     selected = true;
+                    logger.info("22222");
                 } else {
                     // We forced a select operation on the selector before but the SelectionKey is still cached
                     // for whatever reason. JDK bug ?
