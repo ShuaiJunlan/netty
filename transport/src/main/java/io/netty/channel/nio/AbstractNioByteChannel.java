@@ -144,7 +144,9 @@ public abstract class AbstractNioByteChannel extends AbstractNioChannel {
             boolean close = false;
             try {
                 do {
+                    //根据配置中的分配器，分配一个bytebuf
                     byteBuf = allocHandle.allocate(allocator);
+                    //读数据
                     allocHandle.lastBytesRead(doReadBytes(byteBuf));
                     if (allocHandle.lastBytesRead() <= 0) {
                         // nothing was read. release the buffer.

@@ -140,8 +140,9 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
         if (remoteAddress == null) {
             throw new NullPointerException("remoteAddress");
         }
-
+        //验证handler、group、channelFactory是否为空
         validate();
+        //执行连接
         return doResolveAndConnect(remoteAddress, config.localAddress());
     }
 
@@ -160,6 +161,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
      * @see #connect()
      */
     private ChannelFuture doResolveAndConnect(final SocketAddress remoteAddress, final SocketAddress localAddress) {
+        //第一步、执行初始化channel，并注册channel
         final ChannelFuture regFuture = initAndRegister();
         final Channel channel = regFuture.channel();
 
@@ -167,10 +169,12 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
             if (!regFuture.isSuccess()) {
                 return regFuture;
             }
+            //第二步、执行连接
             return doResolveAndConnect0(channel, remoteAddress, localAddress, channel.newPromise());
         } else {
             // Registration future is almost always fulfilled already, but just in case it's not.
             final PendingRegistrationPromise promise = new PendingRegistrationPromise(channel);
+            //添加一个listener，当执行完成回调该listener
             regFuture.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
@@ -185,6 +189,7 @@ public class Bootstrap extends AbstractBootstrap<Bootstrap, Channel> {
                         // Registration was successful, so set the correct executor to use.
                         // See https://github.com/netty/netty/issues/2586
                         promise.registered();
+                        //第二步、执行连接
                         doResolveAndConnect0(channel, remoteAddress, localAddress, promise);
                     }
                 }

@@ -431,6 +431,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                         // fall-through to SELECT since the busy-wait is not supported with NIO
 
                     case SelectStrategy.SELECT:
+                        //核心方法：select操作
                         select(wakenUp.getAndSet(false));
 
                         // 'wakenUp.compareAndSet(false, true)' is always evaluated
@@ -480,6 +481,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 final int ioRatio = this.ioRatio;
                 if (ioRatio == 100) {
                     try {
+                        //处理selected keys
                         processSelectedKeys();
                     } finally {
                         // Ensure we always run tasks.
@@ -601,6 +603,8 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
     private void processSelectedKeysOptimized() {
         for (int i = 0; i < selectedKeys.size; ++i) {
+
+            // 1.取出IO事件以及对应的netty channel类
             final SelectionKey k = selectedKeys.keys[i];
             // null out entry in the array to allow to have it GC'ed once the Channel close
             // See https://github.com/netty/netty/issues/2363
@@ -608,6 +612,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
 
             final Object a = k.attachment();
 
+            // 2.处理该channel
             if (a instanceof AbstractNioChannel) {
                 processSelectedKey(k, (AbstractNioChannel) a);
             } else {
@@ -616,6 +621,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 processSelectedKey(k, task);
             }
 
+            // 3.判断是否该再来次轮询
             if (needsToSelectAgain) {
                 // null out entries in the array to allow to have it GC'ed once the Channel close
                 // See https://github.com/netty/netty/issues/2363
@@ -756,6 +762,16 @@ public final class NioEventLoop extends SingleThreadEventLoop {
         }
     }
 
+    /**
+     * 此方法分为三步：
+     * 1.如果定时任务队列中定时任务截止时间快到了，则中断本次轮询
+     * 2.轮训过程中发现有任务加入队列，中断本次轮询
+     * 3.阻塞式select操作
+     * 4.避开jdk nio空轮询bug
+     *
+     * @param oldWakenUp
+     * @throws IOException
+     */
     private void select(boolean oldWakenUp) throws IOException {
         Selector selector = this.selector;
         try {
@@ -764,6 +780,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
             long selectDeadLineNanos = currentTimeNanos + delayNanos(currentTimeNanos);
 
             for (;;) {
+                // 1
                 long timeoutMillis = (selectDeadLineNanos - currentTimeNanos + 500000L) / 1000000L;
                 if (timeoutMillis <= 0) {
                     if (selectCnt == 0) {
@@ -777,12 +794,15 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                 // Selector#wakeup. So we need to check task queue again before executing select operation.
                 // If we don't, the task might be pended until select operation was timed out.
                 // It might be pended until idle timeout if IdleStateHandler existed in pipeline.
+
+                // 2
                 if (hasTasks() && wakenUp.compareAndSet(false, true)) {
                     selector.selectNow();
                     selectCnt = 1;
                     break;
                 }
 
+                // 3
                 int selectedKeys = selector.select(timeoutMillis);
                 selectCnt ++;
 
@@ -808,6 +828,7 @@ public final class NioEventLoop extends SingleThreadEventLoop {
                     break;
                 }
 
+                // 4
                 long time = System.nanoTime();
                 if (time - TimeUnit.MILLISECONDS.toNanos(timeoutMillis) >= currentTimeNanos) {
                     // timeoutMillis elapsed without anything selected.

@@ -204,11 +204,13 @@ public class DefaultChannelPipeline implements ChannelPipeline {
     @Override
     public final ChannelPipeline addLast(EventExecutorGroup group, String name, ChannelHandler handler) {
         final AbstractChannelHandlerContext newCtx;
+        //同步代码块，保证线程安全
         synchronized (this) {
+            // 1、检查是否有重复的handler
             checkMultiplicity(handler);
-
+            // 2、创建节点
             newCtx = newContext(group, filterName(name, handler), handler);
-
+            // 3、添加节点
             addLast0(newCtx);
 
             // If the registered is false it means that the channel was not registered on an eventloop yet.
@@ -232,6 +234,7 @@ public class DefaultChannelPipeline implements ChannelPipeline {
                 return this;
             }
         }
+        // 4、回调用户方法
         callHandlerAdded0(newCtx);
         return this;
     }
