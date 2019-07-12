@@ -27,7 +27,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.EventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.channel.unix.FileDescriptor;
-import io.netty.testsuite.util.TestUtils;
 import io.netty.util.NetUtil;
 import org.junit.Assert;
 import org.junit.Test;
@@ -296,7 +295,7 @@ public class EpollSpliceTest {
         volatile ChannelFuture future;
         final AtomicReference<Throwable> exception = new AtomicReference<Throwable>();
 
-        public SpliceHandler(File file) {
+        SpliceHandler(File file) {
             this.file = file;
         }
 

@@ -59,6 +59,13 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
         tailTasks = newTaskQueue(maxPendingTasks);
     }
 
+    protected SingleThreadEventLoop(EventLoopGroup parent, Executor executor,
+                                    boolean addTaskWakesUp, Queue<Runnable> taskQueue, Queue<Runnable> tailTaskQueue,
+                                    RejectedExecutionHandler rejectedExecutionHandler) {
+        super(parent, executor, addTaskWakesUp, taskQueue, rejectedExecutionHandler);
+        tailTasks = ObjectUtil.checkNotNull(tailTaskQueue, "tailTaskQueue");
+    }
+
     @Override
     public EventLoopGroup parent() {
         return (EventLoopGroup) super.parent();
@@ -146,6 +153,16 @@ public abstract class SingleThreadEventLoop extends SingleThreadEventExecutor im
     @Override
     public int pendingTasks() {
         return super.pendingTasks() + tailTasks.size();
+    }
+
+    /**
+     * Returns the number of {@link Channel}s registered with this {@link EventLoop} or {@code -1}
+     * if operation is not supported. The returned value is not guaranteed to be exact accurate and
+     * should be viewed as a best effort.
+     */
+    @UnstableApi
+    public int registeredChannels() {
+        return -1;
     }
 
     /**
